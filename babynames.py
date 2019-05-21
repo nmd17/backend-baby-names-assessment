@@ -38,6 +38,7 @@ Suggested milestones for incremental development:
  -Fix main() to use the extract_names list
 """
 
+from lxml import html
 
 def extract_names(filename):
     """
@@ -45,9 +46,32 @@ def extract_names(filename):
     followed by the name-rank strings in alphabetical order.
     ['2006', 'Aaliyah 91', Aaron 57', 'Abagail 895', ' ...]
     """
-    # +++your code here+++
-    return
+    with open(filename, "r") as f:
+        names_dict = {}
 
+        page = f.read()
+        tree = html.fromstring(page)
+        year = tree.xpath('//h3[@align="center"]/text()')
+        names = tree.xpath('//tr[@align="right"]//td/text()')
+
+        name_rank_list = []
+        
+        for i in range(0, len(names), 3):
+           names_dict[names[i]] = [names[i + 1], names[i + 2]]
+
+        for number, name in names_dict.items():
+            name_rank_list.append(name[0] + ' ' + number)
+            name_rank_list.append(name[1] + ' ' + number)
+
+        new_list = sorted(name_rank_list)
+
+        if year:
+            new_list.insert(0, year[0][-4:])
+        else:
+            year_alt = tree.xpath('//table[@summary="Popularity for top 1000"]//h2/text()')
+            new_list.insert(0, year_alt[0][-4:])
+
+        return new_list
 
 def create_parser():
     """Create a cmd line parser object with 2 argument definitions"""
@@ -63,20 +87,21 @@ def create_parser():
 def main():
     parser = create_parser()
     args = parser.parse_args()
-
+ 
     if not args:
         parser.print_usage()
         sys.exit(1)
 
-    file_list = args.files
-
-    # option flag
     create_summary = args.summaryfile
 
-    # +++your code here+++
-    # For each filename, get the names, then either print the text output
-    # or write it to a summary file
+    if create_summary:
+        for item in sys.argv[2:]:
+            new_list = extract_names(item)
+
+            with open(item + '.summary', 'w') as f:
+                text = '\n'.join(new_list) + '\n'
+                f.write(text)
 
 
 if __name__ == '__main__':
-    main()
+   main()
